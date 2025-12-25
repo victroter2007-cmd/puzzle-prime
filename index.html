@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Puzzle del Regalo</title>
+<title>Regalo Congelado</title>
 
 <style>
 body {
@@ -17,29 +17,19 @@ body {
 h2 { margin: 12px 0 4px; }
 p { margin: 0 0 10px; }
 
-#board {
-  width: 300px;
-  height: 300px;
+#container {
+  position: relative;
+  width: 320px;
+  height: 320px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  touch-action: manipulation;
 }
 
-.tile {
-  border-radius: 8px;
-  background-image: url("qr.png");
-  background-size: 300px 300px;
-  transition: transform 0.15s ease;
-}
-
-.tile:active {
-  transform: scale(0.95);
-}
-
-.empty {
-  background: none;
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  touch-action: none;
+  border-radius: 12px;
 }
 
 #msg {
@@ -52,85 +42,70 @@ p { margin: 0 0 10px; }
 
 <body>
 
-<h2>🧩 Ordena el puzzle</h2>
-<p>Completa la imagen para descubrir tu regalo 🎁</p>
+<h2>❄️ El regalo está congelado</h2>
+<p>Rasca la nieve con el dedo 👆</p>
 
-<div id="board"></div>
+<div id="container">
+  <!-- Imagen real -->
+  <img src="qr.png" width="320" height="320" style="border-radius:12px;">
+  <!-- Nieve -->
+  <canvas id="snow" width="320" height="320"></canvas>
+</div>
 
 <div id="msg">
-  🎉 ¡Perfecto!  
-  <br>📸 Ahora escanea el QR
+  🎉 ¡Ya se ve!  
+  <br>📸 Escanea el QR
 </div>
 
 <script>
-const size = 3;
-const board = document.getElementById("board");
-let tiles = [];
+const canvas = document.getElementById("snow");
+const ctx = canvas.getContext("2d");
+let scratching = false;
 
-function isSolved() {
-  return tiles.every((v, i) => v === i);
+// Dibujar nieve
+ctx.fillStyle = "#ffffff";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Efecto borrador
+ctx.globalCompositeOperation = "destination-out";
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top
+  };
 }
 
-function shuffle(arr) {
-  do {
-    arr.sort(() => Math.random() - 0.5);
-  } while (!isSolvable(arr));
-}
+canvas.addEventListener("touchstart", e => {
+  scratching = true;
+});
 
-function isSolvable(arr) {
-  let inv = 0;
-  for (let i = 0; i < arr.length; i++) {
-    for (let j = i + 1; j < arr.length; j++) {
-      if (arr[i] && arr[j] && arr[i] > arr[j]) inv++;
-    }
+canvas.addEventListener("touchend", e => {
+  scratching = false;
+  checkClear();
+});
+
+canvas.addEventListener("touchmove", e => {
+  if (!scratching) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 22, 0, Math.PI * 2);
+  ctx.fill();
+});
+
+function checkClear() {
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let cleared = 0;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] === 0) cleared++;
   }
-  return inv % 2 === 0;
-}
-
-function draw() {
-  board.innerHTML = "";
-  tiles.forEach((n, i) => {
-    const d = document.createElement("div");
-    d.className = "tile";
-
-    if (n === 0) {
-      d.classList.add("empty");
-    } else {
-      const x = (n - 1) % size;
-      const y = Math.floor((n - 1) / size);
-      d.style.backgroundPosition = `-${x * 100}px -${y * 100}px`;
-      d.onclick = () => move(i);
-    }
-    board.appendChild(d);
-  });
-}
-
-function move(i) {
-  const empty = tiles.indexOf(0);
-  const valid = [
-    empty - 1,
-    empty + 1,
-    empty - size,
-    empty + size
-  ];
-
-  if (!valid.includes(i)) return;
-
-  [tiles[i], tiles[empty]] = [tiles[empty], tiles[i]];
-  draw();
-
-  if (isSolved()) {
+  if (cleared / (canvas.width * canvas.height) > 0.45) {
     document.getElementById("msg").style.display = "block";
   }
 }
-
-function init() {
-  tiles = [...Array(size * size).keys()];
-  shuffle(tiles);
-  draw();
-}
-
-init();
 </script>
 
 </body>
