@@ -2,45 +2,49 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Puzzle del Regalo</title>
 
 <style>
 body {
   margin: 0;
   background: linear-gradient(#0b3d91, #021f4b);
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
   color: white;
   text-align: center;
 }
 
-h2 { margin-top: 10px; }
+h2 { margin: 12px 0 4px; }
+p { margin: 0 0 10px; }
 
-#puzzle {
+#board {
   width: 300px;
   height: 300px;
-  margin: 20px auto;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
+  gap: 4px;
+  touch-action: manipulation;
 }
 
 .tile {
-  width: 100%;
-  height: 100%;
+  border-radius: 8px;
   background-image: url("qr.png");
   background-size: 300px 300px;
-  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.tile:active {
+  transform: scale(0.95);
 }
 
 .empty {
   background: none;
-  cursor: default;
 }
 
-#win {
+#msg {
   display: none;
-  margin-top: 20px;
+  margin-top: 16px;
   font-size: 18px;
 }
 </style>
@@ -48,53 +52,61 @@ h2 { margin-top: 10px; }
 
 <body>
 
-<h2>🧩 Puzzle del Regalo</h2>
-<p>Ordena la imagen para descubrir tu sorpresa 🎁</p>
+<h2>🧩 Ordena el puzzle</h2>
+<p>Completa la imagen para descubrir tu regalo 🎁</p>
 
-<div id="puzzle"></div>
+<div id="board"></div>
 
-<div id="win">
-  🎉 ¡Puzzle completado!  
-  <br>📸 Escanea el QR
+<div id="msg">
+  🎉 ¡Perfecto!  
+  <br>📸 Ahora escanea el QR
 </div>
 
 <script>
-const puzzle = document.getElementById("puzzle");
 const size = 3;
+const board = document.getElementById("board");
 let tiles = [];
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
+function isSolved() {
+  return tiles.every((v, i) => v === i);
 }
 
-function createPuzzle() {
-  tiles = [];
-  for (let i = 0; i < size * size; i++) tiles.push(i);
-  shuffle(tiles);
+function shuffle(arr) {
+  do {
+    arr.sort(() => Math.random() - 0.5);
+  } while (!isSolvable(arr));
+}
 
-  puzzle.innerHTML = "";
-  tiles.forEach((n, i) => {
-    const tile = document.createElement("div");
-    tile.className = "tile";
-
-    if (n === size * size - 1) {
-      tile.classList.add("empty");
-    } else {
-      const x = n % size;
-      const y = Math.floor(n / size);
-      tile.style.backgroundPosition = `-${x * 100}px -${y * 100}px`;
+function isSolvable(arr) {
+  let inv = 0;
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      if (arr[i] && arr[j] && arr[i] > arr[j]) inv++;
     }
+  }
+  return inv % 2 === 0;
+}
 
-    tile.onclick = () => move(i);
-    puzzle.appendChild(tile);
+function draw() {
+  board.innerHTML = "";
+  tiles.forEach((n, i) => {
+    const d = document.createElement("div");
+    d.className = "tile";
+
+    if (n === 0) {
+      d.classList.add("empty");
+    } else {
+      const x = (n - 1) % size;
+      const y = Math.floor((n - 1) / size);
+      d.style.backgroundPosition = `-${x * 100}px -${y * 100}px`;
+      d.onclick = () => move(i);
+    }
+    board.appendChild(d);
   });
 }
 
 function move(i) {
-  const empty = tiles.indexOf(size * size - 1);
+  const empty = tiles.indexOf(0);
   const valid = [
     empty - 1,
     empty + 1,
@@ -105,18 +117,20 @@ function move(i) {
   if (!valid.includes(i)) return;
 
   [tiles[i], tiles[empty]] = [tiles[empty], tiles[i]];
-  createPuzzle();
-  checkWin();
-}
+  draw();
 
-function checkWin() {
-  for (let i = 0; i < tiles.length; i++) {
-    if (tiles[i] !== i) return;
+  if (isSolved()) {
+    document.getElementById("msg").style.display = "block";
   }
-  document.getElementById("win").style.display = "block";
 }
 
-createPuzzle();
+function init() {
+  tiles = [...Array(size * size).keys()];
+  shuffle(tiles);
+  draw();
+}
+
+init();
 </script>
 
 </body>
