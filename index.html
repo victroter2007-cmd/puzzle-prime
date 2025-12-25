@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puzzle del Regalo</title>
+
+<style>
+body {
+  margin: 0;
+  background: linear-gradient(#0b3d91, #021f4b);
+  font-family: Arial, sans-serif;
+  color: white;
+  text-align: center;
+}
+
+h2 { margin-top: 10px; }
+
+#puzzle {
+  width: 300px;
+  height: 300px;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.tile {
+  width: 100%;
+  height: 100%;
+  background-image: url("qr.png");
+  background-size: 300px 300px;
+  cursor: pointer;
+}
+
+.empty {
+  background: none;
+  cursor: default;
+}
+
+#win {
+  display: none;
+  margin-top: 20px;
+  font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🧩 Puzzle del Regalo</h2>
+<p>Ordena la imagen para descubrir tu sorpresa 🎁</p>
+
+<div id="puzzle"></div>
+
+<div id="win">
+  🎉 ¡Puzzle completado!  
+  <br>📸 Escanea el QR
+</div>
+
+<script>
+const puzzle = document.getElementById("puzzle");
+const size = 3;
+let tiles = [];
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function createPuzzle() {
+  tiles = [];
+  for (let i = 0; i < size * size; i++) tiles.push(i);
+  shuffle(tiles);
+
+  puzzle.innerHTML = "";
+  tiles.forEach((n, i) => {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+
+    if (n === size * size - 1) {
+      tile.classList.add("empty");
+    } else {
+      const x = n % size;
+      const y = Math.floor(n / size);
+      tile.style.backgroundPosition = `-${x * 100}px -${y * 100}px`;
+    }
+
+    tile.onclick = () => move(i);
+    puzzle.appendChild(tile);
+  });
+}
+
+function move(i) {
+  const empty = tiles.indexOf(size * size - 1);
+  const valid = [
+    empty - 1,
+    empty + 1,
+    empty - size,
+    empty + size
+  ];
+
+  if (!valid.includes(i)) return;
+
+  [tiles[i], tiles[empty]] = [tiles[empty], tiles[i]];
+  createPuzzle();
+  checkWin();
+}
+
+function checkWin() {
+  for (let i = 0; i < tiles.length; i++) {
+    if (tiles[i] !== i) return;
+  }
+  document.getElementById("win").style.display = "block";
+}
+
+createPuzzle();
+</script>
+
+</body>
+</html>
